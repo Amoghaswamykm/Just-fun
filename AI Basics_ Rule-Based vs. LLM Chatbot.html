@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Basics: Rule-Based vs. LLM Chatbot</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; }
+    .token-pill {
+      display: inline-block;
+      padding: 1px 5px;
+      margin: 2px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+  <!-- Top Header -->
+  <header class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+          <i data-lucide="bot" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Chatbot Basics Lab</h1>
+          <p class="text-xs text-slate-500">Compare a Rule-Based Bot with a Language Model</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher -->
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200" role="group" aria-label="Bot Mode">
+          <button id="btnModeRule" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all bg-white text-indigo-700 shadow-sm">
+            1. Rule-Based
+          </button>
+          <button id="btnModeLLM" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900">
+            2. Language Model
+          </button>
+        </div>
+        <button id="btnClearChat" type="button" title="Clear conversation history" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-rose-600 bg-white border border-slate-200 hover:border-rose-200 rounded-xl transition-colors">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <!-- Left Column: Chat Window (7 cols on desktop) -->
+    <section class="lg:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[480px] max-h-[calc(100vh-120px)]">
+      <!-- Mode Banner -->
+      <div id="modeBanner" class="px-4 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between gap-2 text-xs text-indigo-900">
+        <div class="flex items-center gap-2">
+          <i data-lucide="git-branch" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+          <span id="modeBannerText"><strong>Rule-Based Mode:</strong> Matches your words against fixed if/else rules. No memory between turns.</span>
+        </div>
+        <span id="turnBadge" class="shrink-0 px-2 py-0.5 rounded-full bg-white text-indigo-700 font-medium border border-indigo-200">0 turns</span>
+      </div>
+
+      <!-- Messages Container -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+        <!-- Messages rendered by JS -->
+      </div>
+
+      <!-- Quick Try Prompts -->
+      <div class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto">
+        <span class="text-[11px] font-medium text-slate-400 shrink-0 mr-1">Try:</span>
+        <button type="button" class="quick-prompt shrink-0 text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-colors" data-prompt="Hello!">Hello!</button>
+        <button type="button" class="quick-prompt shrink-0 text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-colors" data-prompt="What are your hours?">Hours?</button>
+        <button type="button" class="quick-prompt shrink-0 text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-colors" data-prompt="My name is Alex.">My name is Alex</button>
+        <button type="button" class="quick-prompt shrink-0 text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-colors" data-prompt="What is my name?">What is my name?</button>
+        <button type="button" class="quick-prompt shrink-0 text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-700 transition-colors" data-prompt="Who won the 2099 Mars Olympics?">2099 Mars Olympics?</button>
+      </div>
+
+      <!-- Chat Input Form -->
+      <form id="chatForm" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+        <input
+          id="userInput"
+          type="text"
+          autocomplete="off"
+          placeholder="Type a message to test the bot..."
+          class="flex-1 px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+        />
+        <button id="btnSend" type="submit" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl inline-flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50">
+          <span>Send</span>
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </section>
+
+    <!-- Right Column: Under the Hood & Code (5 cols on desktop) -->
+    <section class="lg:col-span-5 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden max-h-[calc(100vh-120px)]">
+      <!-- Inspector Tabs -->
+      <div class="flex border-b border-slate-200 bg-slate-50 px-2 pt-2 gap-1">
+        <button id="tabInspector" type="button" class="inspector-tab px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 border-indigo-600 text-indigo-700 bg-white">
+          Under the Hood
+        </button>
+        <button id="tabSettings" type="button" class="inspector-tab px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+          Rules &amp; Prompt
+        </button>
+        <button id="tabCode" type="button" class="inspector-tab px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+          Commented Code
+        </button>
+      </div>
+
+      <!-- Tab 1: Under the Hood -->
+      <div id="panelInspector" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Last Decision Trace -->
+        <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-600"></i>
+              Last Reply Trace
+            </span>
+            <span id="traceBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-medium">Waiting</span>
+          </div>
+          <p id="traceDetail" class="text-xs text-slate-600 leading-relaxed">Send a message to see how the bot picks its reply.</p>
+        </div>
+
+        <!-- Token Visualizer -->
+        <div class="rounded-xl border border-slate-200 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="hash" class="w-3.5 h-3.5 text-emerald-600"></i>
+              Tokens in Next Request
+            </span>
+            <span id="tokenCountBadge" class="text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">0 tokens</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">Models read text as small chunks called <strong>tokens</strong> (roughly 3–4 characters each). Below is your latest input split into approximate tokens:</p>
+          <div id="tokenPreview" class="p-2 rounded-lg bg-slate-50 border border-slate-100 min-h-[38px] text-xs text-slate-400">
+            Type or send a message to see token chunks...
+          </div>
+        </div>
+
+        <!-- Context / Messages Array -->
+        <div class="rounded-xl border border-slate-200 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-600"></i>
+              Context Sent to Model (<code class="text-[11px]">messages</code>)
+            </span>
+            <span id="contextStatus" class="text-[11px] text-slate-500">Not used in Rule mode</span>
+          </div>
+          <pre id="contextJson" class="text-[11px] leading-relaxed bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto max-h-56">[]</pre>
+        </div>
+      </div>
+
+      <!-- Tab 2: Rules & System Prompt -->
+      <div id="panelSettings" class="hidden flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Rule-Based Keyword Table -->
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">1. Rule-Based Keyword Rules</h2>
+          <p class="text-xs text-slate-600 mb-2">In Rule-Based mode, the bot checks your message from top to bottom for these exact keywords:</p>
+          <div id="rulesList" class="space-y-1.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <hr class="border-slate-200" />
+
+        <!-- LLM System Instruction -->
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">2. LLM System Instruction</h2>
+          <p class="text-xs text-slate-600 mb-2">In Language Model mode, this hidden instruction sets the bot's role and rules before the user even speaks:</p>
+          <textarea id="systemPromptInput" rows="3" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">You are a friendly, concise AI tutor helping a beginner learn how chatbots work. Keep answers to 2-3 short sentences.</textarea>
+        </div>
+
+        <!-- Optional Real API Key -->
+        <div class="rounded-xl border border-slate-200 p-3 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700">LLM Connection</span>
+            <select id="llmBackendSelect" class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white">
+              <option value="simulator">Built-in Simulator (No key needed)</option>
+              <option value="gemini">Live Gemini API (HTTPS)</option>
+            </select>
+          </div>
+          <div id="apiKeyRow" class="hidden space-y-1.5">
+            <input id="apiKeyInput" type="password" placeholder="Paste Gemini API key (stays in memory only)" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white" />
+            <p class="text-[11px] text-slate-500">Optional: calls <code class="text-[10px]">generativelanguage.googleapis.com</code> directly from your browser.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Commented Code -->
+      <div id="panelCode" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-600">How both modes work in JavaScript:</p>
+          <button id="btnCopyCode" type="button" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium inline-flex items-center gap-1 transition-colors">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyLabel">Copy</span>
+          </button>
+        </div>
+        <pre id="codeBlock" class="text-[11px] leading-relaxed bg-slate-900 text-slate-100 p-3.5 rounded-xl overflow-x-auto"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. RULE-BASED CHATBOT: Keyword matching with no memory
+    // =========================================================================
+    const KEYWORD_RULES = [
+      {
+        keywords: ['hello', 'hi', 'hey'],
+        reply: "Hi there! I'm a rule-based bot. Ask me about our hours, pricing, or say bye."
+      },
+      {
+        keywords: ['hour', 'open', 'time'],
+        reply: "We are open Monday to Friday, 9:00 AM to 5:00 PM."
+      },
+      {
+        keywords: ['price', 'cost', 'how much'],
+        reply: "Our basic plan is free, and the pro plan is $10/month."
+      },
+      {
+        keywords: ['bye', 'goodbye', 'see ya'],
+        reply: "Goodbye! Feel free to come back anytime."
+      }
+    ];
+
+    function getRuleBasedReply(userText) {
+      // Lowercase the text so "Hello" and "hello" match the same rule
+      const cleanText = userText.toLowerCase();
+
+      // Loop through each rule and check if any keyword appears in the text
+      for (const rule of KEYWORD_RULES) {
+        const matchedWord = rule.keywords.find(word => cleanText.includes(word));
+        if (matchedWord) {
+          return {
+            reply: rule.reply,
+            trace: `Matched keyword "${matchedWord}" -> returned fixed reply.`
+          };
+        }
+      }
+
+      // Fallback when no keyword matches (rule-based bots can't improvise!)
+      return {
+        reply: "Sorry, I didn't recognize any keywords in that. Try asking about 'hours' or 'price'!",
+        trace: "No keywords matched -> returned fallback message."
+      };
+    }
+
+    // =========================================================================
+    // 2. LANGUAGE MODEL (LLM) CHATBOT: System prompt + full message history
+    // =========================================================================
+    async function getLLMReply(conversationHistory, systemInstruction, backend, apiKey) {
+      // If user chose the live Gemini API and provided a key, make a real HTTPS call
+      if (backend === 'gemini' && apiKey.trim()) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+          const payload = {
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: conversationHistory.map(msg => ({
+              role: msg.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: msg.content }]
+            }))
+          };
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error?.message || 'API error');
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '(Empty response)';
+          return {
+            reply: text,
+            trace: `Live Gemini API call succeeded using ${conversationHistory.length} message(s) of context.`
+          };
+        } catch (err) {
+          return {
+            reply: `API error: ${err.message}. Falling back to simulator mode.`,
+            trace: `Live API failed (${err.message}).`
+          };
+        }
+      }
+
+      // Built-in educational simulator (demonstrates context, system prompt, & hallucination)
+      const lastUserMsg = conversationHistory[conversationHistory.length - 1].content;
+      const lower = lastUserMsg.toLowerCase();
+
+      // Check earlier turns in conversationHistory to show how context carries across turns
+      const nameMatch = conversationHistory
+        .filter(m => m.role === 'user')
+        .map(m => m.content.match(/my name is ([a-z]+)/i))
+        .find(Boolean);
+
+      if (lower.includes('my name is')) {
+        const name = lastUserMsg.match(/my name is ([a-z]+)/i)?.[1] || 'friend';
+        return {
+          reply: `Nice to meet you, ${name}! I'll keep that in our conversation history so I remember it on later turns.`,
+          trace: `LLM read your turn and stored it in the messages array.`
+        };
+      }
+
+      if (lower.includes('what is my name') || lower.includes("what's my name")) {
+        if (nameMatch) {
+          return {
+            reply: `Your name is ${nameMatch[1]}! I know that because the entire messages array was sent back to me on this turn.`,
+            trace: `Found "${nameMatch[1]}" by reading earlier turn in conversationHistory.`
+          };
+        }
+        return {
+          reply: "You haven't told me your name yet in this conversation! Try saying 'My name is Alex' first.",
+          trace: `Scanned ${conversationHistory.length} message(s) in context; no name found.`
+        };
+      }
+
+      if (lower.includes('2099') || lower.includes('mars olympics')) {
+        return {
+          reply: "In the 2099 Mars Olympics, Team Olympus won 14 gold medals in low-gravity sprints! (⚠️ Notice how confidently I just made that up—that's a hallucination because I predict plausible-sounding words, not verified facts.)",
+          trace: `Hallucination demo: model generated plausible-sounding text for an impossible/unknown event.`
+        };
+      }
+
+      if (lower.includes('hello') || lower.includes('hi')) {
+        return {
+          reply: `Hello! I'm following my system instruction ("${systemInstruction.slice(0, 48)}..."). Unlike the rule-based bot, I can handle open-ended questions and remember earlier turns.`,
+          trace: `Generated flexible greeting guided by the system instruction.`
+        };
+      }
+
+      return {
+        reply: `You asked: "${lastUserMsg}". A language model predicts the most likely next tokens based on your prompt, the system instruction, and all ${conversationHistory.length} message(s) in context.`,
+        trace: `Processed ${conversationHistory.length} turn(s) + system instruction (~${estimateTokens(systemInstruction + JSON.stringify(conversationHistory))} tokens).`
+      };
+    }
+
+    // =========================================================================
+    // 3. TOKENIZER HELPER (Approximate visual split)
+    // =========================================================================
+    function tokenizePreview(text) {
+      if (!text.trim()) return [];
+      // Split into word/punctuation/subword chunks (~3-4 chars) to illustrate tokens
+      const raw = text.match(/\s+|[^\s\w]+|\w{1,4}/g) || [];
+      return raw.filter(t => t.trim().length > 0);
+    }
+
+    function estimateTokens(text) {
+      if (!text) return 0;
+      return Math.max(1, Math.ceil(text.length / 4));
+    }
+
+    // =========================================================================
+    // 4. APP STATE & UI RENDERING
+    // =========================================================================
+    const state = {
+      mode: 'rule', // 'rule' | 'llm'
+      messages: [
+        {
+          role: 'assistant',
+          content: "Welcome! I'm in Rule-Based mode right now. Try saying 'Hello', asking for 'hours', or testing 'My name is Alex' and then switching to Language Model mode."
+        }
+      ],
+      lastTrace: 'Ready. Send a message to inspect how it works.',
+      lastInput: ''
+    };
+
+    const COMMENTED_CODE_SNIPPET = `// 1. RULE-BASED BOT: Fixed keywords, no memory
+const rules = [
+  { keywords: ['hello', 'hi'], reply: 'Hi there!' },
+  { keywords: ['hours', 'open'], reply: 'Open 9am - 5pm.' }
+];
+
+function getRuleBasedReply(userText) {
+  const clean = userText.toLowerCase();
+  for (const rule of rules) {
+    if (rule.keywords.some(k => clean.includes(k))) {
+      return rule.reply; // Exact match found
+    }
+  }
+  return "Sorry, I don't understand."; // Rigid fallback
+}
+
+// 2. LANGUAGE MODEL BOT: System prompt + full history
+async function getLLMReply(messages, systemInstruction) {
+  // We send the ENTIRE conversation history every turn!
+  const response = await fetch('https://api.example.com/v1/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: systemInstruction, // Sets behavior & persona
+      messages: messages         // [{role: 'user', content: '...'}, ...]
+    })
+  });
+  const data = await response.json();
+  // Model predicts next tokens—flexible, but can hallucinate!
+  return data.reply;
+}`;
+
+    // DOM Elements
+    const elChat = document.getElementById('chatMessages');
+    const elForm = document.getElementById('chatForm');
+    const elInput = document.getElementById('userInput');
+    const elBtnRule = document.getElementById('btnModeRule');
+    const elBtnLLM = document.getElementById('btnModeLLM');
+    const elBtnClear = document.getElementById('btnClearChat');
+    const elModeBanner = document.getElementById('modeBanner');
+    const elModeBannerText = document.getElementById('modeBannerText');
+    const elTurnBadge = document.getElementById('turnBadge');
+    const elTraceBadge = document.getElementById('traceBadge');
+    const elTraceDetail = document.getElementById('traceDetail');
+    const elTokenCount = document.getElementById('tokenCountBadge');
+    const elTokenPreview = document.getElementById('tokenPreview');
+    const elContextStatus = document.getElementById('contextStatus');
+    const elContextJson = document.getElementById('contextJson');
+    const elRulesList = document.getElementById('rulesList');
+    const elSystemPrompt = document.getElementById('systemPromptInput');
+    const elBackendSelect = document.getElementById('llmBackendSelect');
+    const elApiKeyRow = document.getElementById('apiKeyRow');
+    const elApiKeyInput = document.getElementById('apiKeyInput');
+    const elCodeBlock = document.getElementById('codeBlock');
+    const elBtnCopy = document.getElementById('btnCopyCode');
+    const elCopyLabel = document.getElementById('copyLabel');
+
+    const TOKEN_COLORS = [
+      'bg-indigo-100 text-indigo-800',
+      'bg-emerald-100 text-emerald-800',
+      'bg-amber-100 text-amber-800',
+      'bg-sky-100 text-sky-800',
+      'bg-rose-100 text-rose-800'
+    ];
+
+    function renderRules() {
+      elRulesList.innerHTML = KEYWORD_RULES.map(r => `
+        <div class="text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 flex flex-col gap-1">
+          <div class="flex flex-wrap gap-1">
+            ${r.keywords.map(k => `<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-mono text-[11px]">${k}</span>`).join('')}
+          </div>
+          <div class="text-slate-600">&rarr; "${r.reply}"</div>
+        </div>
+      `).join('');
+    }
+
+    function render() {
+      // Mode buttons & banner
+      if (state.mode === 'rule') {
+        elBtnRule.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all bg-white text-indigo-700 shadow-sm';
+        elBtnLLM.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900';
+        elModeBanner.className = 'px-4 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between gap-2 text-xs text-indigo-900';
+        elModeBannerText.innerHTML = '<strong>Rule-Based Mode:</strong> Matches keywords to fixed replies. No memory between turns.';
+      } else {
+        elBtnLLM.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all bg-white text-emerald-700 shadow-sm';
+        elBtnRule.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900';
+        elModeBanner.className = 'px-4 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between gap-2 text-xs text-emerald-900';
+        elModeBannerText.innerHTML = '<strong>Language Model Mode:</strong> Sends system instruction + full history every turn.';
+      }
+
+      const userTurns = state.messages.filter(m => m.role === 'user').length;
+      elTurnBadge.textContent = `${userTurns} ${userTurns === 1 ? 'turn' : 'turns'}`;
+
+      // Chat messages
+      elChat.innerHTML = state.messages.map(msg => {
+        const isUser = msg.role === 'user';
+        return `
+          <div class="flex ${isUser ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm ${
+              isUser
+                ? 'bg-indigo-600 text-white rounded-br-sm'
+                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-sm'
+            }">
+              ${escapeHtml(msg.content)}
+            </div>
+          </div>
+        `;
+      }).join('');
+      elChat.scrollTop = elChat.scrollHeight;
+
+      // Trace
+      elTraceBadge.textContent = state.mode === 'rule' ? 'Rule Engine' : 'LLM';
+      elTraceDetail.textContent = state.lastTrace;
+
+      // Tokens
+      const sysText = state.mode === 'llm' ? elSystemPrompt.value : '';
+      const historyText = state.mode === 'llm' ? state.messages.map(m => m.content).join(' ') : state.lastInput;
+      const totalTokens = estimateTokens(sysText + ' ' + historyText);
+      elTokenCount.textContent = `~${totalTokens} tokens`;
+
+      const previewSource = elInput.value || state.lastInput;
+      const chunks = tokenizePreview(previewSource);
+      if (chunks.length > 0) {
+        elTokenPreview.innerHTML = chunks.map((t, i) =>
+          `<span class="token-pill ${TOKEN_COLORS[i % TOKEN_COLORS.length]}">${escapeHtml(t)}</span>`
+        ).join('');
+      } else {
+        elTokenPreview.textContent = 'Type or send a message to see token chunks...';
+      }
+
+      // Context JSON
+      if (state.mode === 'rule') {
+        elContextStatus.textContent = 'Ignored in Rule mode';
+        elContextJson.textContent = JSON.stringify(
+          state.lastInput ? [{ role: 'user', content: state.lastInput }] : [],
+          null,
+          2
+        );
+      } else {
+        elContextStatus.textContent = `${state.messages.length} message(s) sent`;
+        const payload = [
+          { role: 'system', content: elSystemPrompt.value },
+          ...state.messages
+        ];
+        elContextJson.textContent = JSON.stringify(payload, null, 2);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function handleSend(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      state.lastInput = trimmed;
+      state.messages.push({ role: 'user', content: trimmed });
+      elInput.value = '';
+      render();
+
+      if (state.mode === 'rule') {
+        const res = getRuleBasedReply(trimmed);
+        state.messages.push({ role: 'assistant', content: res.reply });
+        state.lastTrace = res.trace;
+      } else {
+        const res = await getLLMReply(
+          state.messages,
+          elSystemPrompt.value,
+          elBackendSelect.value,
+          elApiKeyInput.value
+        );
+        state.messages.push({ role: 'assistant', content: res.reply });
+        state.lastTrace = res.trace;
+      }
+      render();
+    }
+
+    // Event Listeners
+    elForm.addEventListener('submit', e => {
+      e.preventDefault();
+      handleSend(elInput.value);
+    });
+
+    elInput.addEventListener('input', () => {
+      const chunks = tokenizePreview(elInput.value);
+      if (chunks.length > 0) {
+        elTokenPreview.innerHTML = chunks.map((t, i) =>
+          `<span class="token-pill ${TOKEN_COLORS[i % TOKEN_COLORS.length]}">${escapeHtml(t)}</span>`
+        ).join('');
+      }
+    });
+
+    elBtnRule.addEventListener('click', () => {
+      state.mode = 'rule';
+      state.lastTrace = 'Switched to Rule-Based mode. Previous turns are ignored.';
+      render();
+    });
+
+    elBtnLLM.addEventListener('click', () => {
+      state.mode = 'llm';
+      state.lastTrace = 'Switched to Language Model mode. Full message history is now sent.';
+      render();
+    });
+
+    elBtnClear.addEventListener('click', () => {
+      state.messages = [
+        {
+          role: 'assistant',
+          content: state.mode === 'rule'
+            ? "Chat reset! I'm in Rule-Based mode. Try 'Hello' or 'What are your hours?'."
+            : "Chat reset! History is empty again—try telling me your name and asking for it on the next turn."
+        }
+      ];
+      state.lastInput = '';
+      state.lastTrace = 'Conversation history cleared.';
+      render();
+    });
+
+    document.querySelectorAll('.quick-prompt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleSend(btn.dataset.prompt);
+      });
+    });
+
+    // Tabs
+    const tabs = [
+      { btn: document.getElementById('tabInspector'), panel: document.getElementById('panelInspector') },
+      { btn: document.getElementById('tabSettings'), panel: document.getElementById('panelSettings') },
+      { btn: document.getElementById('tabCode'), panel: document.getElementById('panelCode') }
+    ];
+
+    tabs.forEach(({ btn, panel }) => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.btn.classList.remove('border-indigo-600', 'text-indigo-700', 'bg-white');
+          t.btn.classList.add('border-transparent', 'text-slate-500');
+          t.panel.classList.add('hidden');
+        });
+        btn.classList.add('border-indigo-600', 'text-indigo-700', 'bg-white');
+        btn.classList.remove('border-transparent', 'text-slate-500');
+        panel.classList.remove('hidden');
+      });
+    });
+
+    elBackendSelect.addEventListener('change', () => {
+      elApiKeyRow.classList.toggle('hidden', elBackendSelect.value !== 'gemini');
+    });
+
+    elSystemPrompt.addEventListener('input', render);
+
+    elBtnCopy.addEventListener('click', () => {
+      const text = COMMENTED_CODE_SNIPPET;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+      elCopyLabel.textContent = 'Copied!';
+      setTimeout(() => { elCopyLabel.textContent = 'Copy'; }, 1500);
+    });
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    // Init
+    elCodeBlock.textContent = COMMENTED_CODE_SNIPPET;
+    renderRules();
+    render();
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
